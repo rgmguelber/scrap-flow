@@ -15,6 +15,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -103,6 +104,7 @@ export function MobileSideBar() {
 
           <div className="hidden">
             <SheetTitle />
+            <SheetDescription />
           </div>
 
           <SheetContent
