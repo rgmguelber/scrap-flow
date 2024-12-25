@@ -39,7 +39,7 @@ function WorkflowCard({ workflow }: { workflow: Workflow }) {
   return (
     <Card className="border border-separate shadow-sm rounded-lg overflow-hidden hover:shadow-md dark:shadow-primary/30">
       <CardContent className="p-4 flex items-center justify-between h-[100px]">
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center gap-2">
           <div
             className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",

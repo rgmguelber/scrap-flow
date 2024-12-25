@@ -2,14 +2,26 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ParamProps } from "@/types/appnodes";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-function StringParam({ param, value, updateNodeParamValue }: ParamProps) {
+function StringParam({
+  param,
+  value,
+  updateNodeParamValue,
+  disabled,
+}: ParamProps) {
   const id = useId();
-  const [internalValue, setInternalValue] = useState(
-    value === undefined ? "" : value
-  );
+  const [internalValue, setInternalValue] = useState(value);
+
+  useEffect(() => {
+    setInternalValue(value);
+    console.log("@Internalvale", internalValue);
+  }, [value]);
+
+  let Component: any = Input;
+  if (param.variant === "textarea") Component = Textarea;
 
   return (
     <div className="space-y-1 p-1 w-full">
@@ -18,14 +30,14 @@ function StringParam({ param, value, updateNodeParamValue }: ParamProps) {
         {param.required && <p className="text-red-400">*</p>}
       </Label>
 
-      <Input
-        type="text"
+      <Component
         id={id}
         value={internalValue}
+        disabled={disabled}
         className="text-xs"
         placeholder="Entre com o valor aqui."
-        onChange={(e) => setInternalValue(e.target.value)}
-        onBlur={(e) => updateNodeParamValue(e.target.value)}
+        onChange={(e: any) => setInternalValue(e.target.value)}
+        onBlur={(e: any) => updateNodeParamValue(e.target.value)}
       />
 
       {param.helperText && (
