@@ -3,7 +3,9 @@
 import { ParamProps } from "@/types/appnodes";
 
 function BrowserInstanceParam({ param }: ParamProps) {
-  return <div className="text-xs">BrowserInstanceParam</div>;
+  // console.log(param);
+
+  return <p className="text-xs">{param.name}</p>;
 }
 
 export default BrowserInstanceParam;

@@ -10,6 +10,7 @@ import {
   Connection,
   Controls,
   Edge,
+  getOutgoers,
   ReactFlow,
   useEdgesState,
   useNodesState,
@@ -21,6 +22,8 @@ import React, { useCallback, useEffect } from "react";
 import NodeComponent from "./nodes/NodeComponent";
 import { AppNode } from "@/types/appnodes";
 import DeletableEdge from "./edges/DeletableEdge";
+import { toast } from "sonner";
+import { TaskRegistry } from "@/lib/workflows/task/registry";
 
 const NodeTypes = {
   FlowScrapeNode: NodeComponent,
@@ -41,6 +44,48 @@ function FlowEditor({ workflow }: { workflow: Workflow }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { setViewport, screenToFlowPosition, updateNodeData } = useReactFlow();
 
+  const isValidConnection = useCallback(
+    (connection: Edge | Connection) => {
+      // Não permite conectar-se a se mesmo
+      if (connection.source === connection.target) return false;
+
+      // Não permite conectar-se a tipos diferentes de source e target
+      const source = nodes.find((node) => node.id === connection.source);
+      const target = nodes.find((node) => node.id === connection.target);
+
+      if (!source || !target) return false;
+
+      const sourceTask = TaskRegistry[source.data.type];
+      const targetTask = TaskRegistry[target.data.type];
+
+      const output = sourceTask.outputs.find(
+        (o) => o.name === connection.sourceHandle
+      );
+      const input = targetTask.inputs.find(
+        (o) => o.name === connection.targetHandle
+      );
+
+      if (input?.type !== output?.type) return false;
+
+      // Verifica se a ligação gerará um ciclo fechado
+      const hasCycle = (node: AppNode, visited = new Set()) => {
+        if (visited.has(node.id)) return false;
+
+        visited.add(node.id);
+
+        for (const outgoer of getOutgoers(node, nodes, edges)) {
+          if (outgoer.id === connection.source) return true;
+          if (hasCycle(outgoer, visited)) return true;
+        }
+      };
+
+      const detectedCycle = hasCycle(target);
+
+      return !detectedCycle;
+    },
+    [nodes, edges]
+  );
+
   useEffect(() => {
     try {
       const flow = JSON.parse(workflow.definition);
@@ -55,7 +100,10 @@ function FlowEditor({ workflow }: { workflow: Workflow }) {
       const { x = 0, y = 0, zoom = 1 } = flow.viewport;
 
       setViewport({ x, y, zoom });
-    } catch (error) {}
+    } catch (error) {
+      console.log(error);
+      toast.error("Falha ao atualizar nós.");
+    }
   }, [workflow.definition, setEdges, setNodes, setViewport]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -63,21 +111,24 @@ function FlowEditor({ workflow }: { workflow: Workflow }) {
     event.dataTransfer.dropEffect = "move";
   }, []);
 
-  const onDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    const taskType = event.dataTransfer.getData("application/reactflow");
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const taskType = event.dataTransfer.getData("application/reactflow");
 
-    if (!taskType || taskType === undefined) return;
+      if (!taskType || taskType === undefined) return;
 
-    const position = screenToFlowPosition({
-      x: event.clientX,
-      y: event.clientY,
-    });
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
 
-    const newNode = CreateFlowNode(taskType as TaskType, position);
+      const newNode = CreateFlowNode(taskType as TaskType, position);
 
-    setNodes((nds) => nds.concat(newNode));
-  }, []);
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [screenToFlowPosition, setNodes]
+  );
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -113,6 +164,7 @@ function FlowEditor({ workflow }: { workflow: Workflow }) {
         onDragOver={onDragOver}
         onDrop={onDrop}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
       >
         <Controls position="top-left" fitViewOptions={fitViewOptions} />
         <Background variant={BackgroundVariant.Dots} gap={12} size={1} />

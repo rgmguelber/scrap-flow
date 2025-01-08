@@ -103,11 +103,6 @@ export function MobileSideBar() {
 
             <div className="flex flex-col gap-1">
               {routes.map((route) => {
-                if (pathName === route.href) {
-                  console.log("@route.href", route.href);
-                  console.log("@pathName", pathName);
-                }
-
                 return (
                   <Link
                     key={route.href}

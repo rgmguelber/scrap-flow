@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -17,8 +18,7 @@ function StringParam({
 
   useEffect(() => {
     setInternalValue(value);
-    console.log("@Internalvale", internalValue);
-  }, [value]);
+  }, [internalValue, value]);
 
   let Component: any = Input;
   if (param.variant === "textarea") Component = Textarea;
