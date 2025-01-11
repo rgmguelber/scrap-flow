@@ -1,15 +1,22 @@
-import { AppNode } from "@/types/appnodes";
+import { AppNode, AppNodeMissingInputs } from "@/types/appnodes";
 import {
   WorkflowExecutionPlan,
   WorkflowExecutionPlanPhase,
 } from "@/types/workflow";
 import { TaskRegistry } from "./task/registry";
 import { Edge, getIncomers } from "@xyflow/react";
-import { icons } from "lucide-react";
-import App from "next/app";
+
+export enum FlowToExecutionPlanValidationError {
+  "NO_ENTRY_POINT",
+  "INVALID_INPUTS",
+}
 
 type FlowToExecutionPlanType = {
   executionPlan?: WorkflowExecutionPlan;
+  error?: {
+    type: FlowToExecutionPlanValidationError;
+    invalidElements?: AppNodeMissingInputs[];
+  };
 };
 
 export function FlowToExecutionPlan(
@@ -23,21 +30,35 @@ export function FlowToExecutionPlan(
   );
 
   if (!entryPoint)
-    // TODO: TRATAR ESTE ERRO
-    throw new Error("Handle this error");
+    return {
+      error: {
+        type: FlowToExecutionPlanValidationError.NO_ENTRY_POINT,
+      },
+    };
 
+  const inputsWithErrors: AppNodeMissingInputs[] = [];
   const planned = new Set<string>();
+
+  const invalidInputs = getInvalidInputs(entryPoint, edges, planned);
+  if (invalidInputs.length > 0) {
+    inputsWithErrors.push({
+      nodeId: entryPoint.id,
+      inputs: invalidInputs,
+    });
+  }
+
   const executionPlan: WorkflowExecutionPlan = [
     {
       phase: 1,
       nodes: [entryPoint],
     },
   ];
+  planned.add(entryPoint.id);
 
   // FAZ A VARREDURA DO VETOR DE NÓS PARA MONTAGEM DO PLANO DE EXECUÇÃO
   for (
     let phase = 2;
-    phase <= nodes.length || planned.size < nodes.length;
+    phase <= nodes.length && planned.size < nodes.length;
     phase++
   ) {
     const nextPhase: WorkflowExecutionPlanPhase = { phase, nodes: [] };
@@ -52,18 +73,34 @@ export function FlowToExecutionPlan(
 
         // VERIFICAR SE TODOS OS NÓS POSSUEM OS REQUISITOS ATENDIDOS
         if (incomers.every((incomer) => planned.has(incomer.id))) {
-          console.error("invalid inputs", currentNode.id, invalidInputs);
-          throw new Error("Tratar erro 01");
+          // console.error("invalid inputs", currentNode.id, invalidInputs);
+
+          inputsWithErrors.push({
+            nodeId: currentNode.id,
+            inputs: invalidInputs,
+          });
+
+          console.log("@inputsWithErrors", inputsWithErrors);
         } else {
           continue;
         }
       }
 
       nextPhase.nodes.push(currentNode);
-      planned.add(currentNode.id);
     }
+
+    for (const node of nextPhase.nodes) planned.add(node.id);
+
+    executionPlan.push(nextPhase);
   }
 
+  if (inputsWithErrors.length > 0)
+    return {
+      error: {
+        type: FlowToExecutionPlanValidationError.INVALID_INPUTS,
+        invalidElements: inputsWithErrors,
+      },
+    };
   return { executionPlan };
 }
 
