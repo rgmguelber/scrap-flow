@@ -25,16 +25,9 @@ export function NodeInput({
     (edge) => edge.target === nodeId && edge.targetHandle === input.name
   );
 
-  const node = invalidInputs.find((node) => node.nodeId === nodeId);
-  const inputTest = node?.inputs.find((invalid) => invalid === input.name);
-
-  console.log(inputTest);
-
   const hasErrors = invalidInputs
     .find((node) => node.nodeId === nodeId)
     ?.inputs.find((invalid) => invalid === input.name);
-
-  console.log("inputName", input.name, "hasError", hasErrors);
 
   return (
     <div

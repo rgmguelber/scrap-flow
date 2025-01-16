@@ -16,9 +16,9 @@ function StringParam({
   const id = useId();
   const [internalValue, setInternalValue] = useState(value);
 
-  useEffect(() => {
-    setInternalValue(value);
-  }, [internalValue, value]);
+  // useEffect(() => {
+  //   setInternalValue(value);
+  // }, [internalValue, value]);
 
   let Component: any = Input;
   if (param.variant === "textarea") Component = Textarea;
@@ -36,7 +36,10 @@ function StringParam({
         disabled={disabled}
         className="text-xs"
         placeholder="Entre com o valor aqui."
-        onChange={(e: any) => setInternalValue(e.target.value)}
+        onChange={(e: any) => {
+          console.log(e.target.value);
+          setInternalValue(e.target.value);
+        }}
         onBlur={(e: any) => updateNodeParamValue(e.target.value)}
       />
 
