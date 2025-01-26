@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ExecutionEnvironment } from "@/types/executor";
 import { ExtractTextFromElement } from "../task/ExtractTextFromElement";
 import * as cheerio from "cheerio";

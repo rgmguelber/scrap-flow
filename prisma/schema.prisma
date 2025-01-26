@@ -80,3 +80,8 @@ model ExecutionLog {
 
 
 }
+
+model UserBalance {
+  userId String @id
+  credits Int @default(0)
+}

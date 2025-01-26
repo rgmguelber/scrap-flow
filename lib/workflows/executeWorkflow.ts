@@ -1,22 +1,23 @@
-import { revalidatePath } from "next/cache";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
+
 import prisma from "../prisma";
-import { exec } from "child_process";
+import { revalidatePath } from "next/cache";
+import { Browser, Page } from "puppeteer";
+import { Edge } from "@xyflow/react";
+import { ExecutionPhase } from "@prisma/client";
+
 import {
   ExecutionPhaseStatus,
   WorkflowExecutionStatus,
 } from "@/types/workflow";
-import { waitFor } from "../helpers/waitFor";
-import { ExecutionPhase } from "@prisma/client";
 import { AppNode } from "@/types/appnodes";
-import { TaskRegistry } from "./task/registry";
-import App from "next/app";
-import { TaskParamType, TaskType } from "@/types/task";
-import { ExecutorRegistry } from "./executor/registry";
+import { TaskParamType } from "@/types/task";
+import { LogCollector } from "@/types/log";
 import { Environment, ExecutionEnvironment } from "@/types/executor";
-import { Browser, Page } from "puppeteer";
-import { Edge } from "@xyflow/react";
-import { Log, LogCollector } from "@/types/log";
+
+import { TaskRegistry } from "./task/registry";
+import { ExecutorRegistry } from "./executor/registry";
 import { createLogCollector } from "../log";
 
 export async function ExecuteWorkflow(executionId: string) {
@@ -38,15 +39,18 @@ export async function ExecuteWorkflow(executionId: string) {
   await initializePhaseStatuses(execution);
 
   // INICIALIZA OS STATUS DAS FASES
-  const creditsConsumed = 0;
+  let creditsConsumed = 0;
   let executionFailed = false;
   for (const phase of execution.phases) {
     // EXECUTA A FASE
     const phaseExecution = await executeWorkflowPhase(
       phase,
       environment,
-      edges
+      edges,
+      execution.userId
     );
+
+    creditsConsumed += phaseExecution.creditsConsumed;
 
     if (!phaseExecution.success) {
       executionFailed = true;
@@ -145,7 +149,8 @@ async function finalizeWorkflowExecution(
 async function executeWorkflowPhase(
   phase: ExecutionPhase,
   environment: Environment,
-  edges: Edge[]
+  edges: Edge[],
+  userId: string
 ) {
   const logCollector = createLogCollector();
   const startedAt = new Date();
@@ -166,20 +171,31 @@ async function executeWorkflowPhase(
   });
 
   const creditsRequired = TaskRegistry[node.data.type].credits;
+  let success = await DecrementCredits(userId, creditsRequired, logCollector);
+  const creditsConsumed = success ? creditsRequired : 0;
 
-  const success = await executePhase(phase, node, environment, logCollector);
+  if (success)
+    // Verifica se os créditos são suficientes e então executa a fase
+    success = await executePhase(phase, node, environment, logCollector);
 
   const outputs = environment.phases[node.id].outputs;
 
-  await finalizePhase(phase.id, success, outputs, logCollector);
-  return { success };
+  await finalizePhase(
+    phase.id,
+    success,
+    outputs,
+    logCollector,
+    creditsConsumed
+  );
+  return { success, creditsConsumed };
 }
 
 async function finalizePhase(
   phaseId: string,
   success: boolean,
   outputs: any,
-  logCollector: LogCollector
+  logCollector: LogCollector,
+  creditsConsumed: number
 ) {
   const finalStatus = success
     ? ExecutionPhaseStatus.COMPLETED
@@ -193,6 +209,7 @@ async function finalizePhase(
       status: finalStatus,
       completedAt: new Date(),
       outputs: JSON.stringify(outputs),
+      creditConsumed: creditsConsumed,
       logs: {
         createMany: {
           data: logCollector.getAll().map((log) => ({
@@ -287,4 +304,21 @@ async function cleanupEnvironment(enviroment: Environment) {
       .catch((err) =>
         console.error("Não foi possíve fechar o browser por esta razão: ", err)
       );
+}
+
+async function DecrementCredits(
+  userId: string,
+  amount: number,
+  logCollector: LogCollector
+) {
+  try {
+    await prisma.userBalance.update({
+      where: { userId, credits: { gte: amount } },
+      data: { credits: { decrement: amount } },
+    });
+    return true;
+  } catch {
+    logCollector.error("Créditos insuficientes.");
+    return false;
+  }
 }

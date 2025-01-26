@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sheet";
 
 import Logo from "./Logo";
+import UserAvailableCreditsBadge from "./UserAvailableCreditsBadge";
 
 const routes = [
   {
@@ -55,7 +56,9 @@ function DesktopSideBar() {
         <Logo />
       </div>
 
-      <div className="p-2">TODO CREDITIS</div>
+      <div className="p-2">
+        <UserAvailableCreditsBadge />
+      </div>
 
       <div className="flex flex-col p-2">
         {routes.map((route) => (
@@ -100,6 +103,8 @@ export function MobileSideBar() {
             side="left"
           >
             <Logo />
+
+            <UserAvailableCreditsBadge />
 
             <div className="flex flex-col gap-1">
               {routes.map((route) => {

@@ -5,7 +5,6 @@ import {
 } from "@/types/workflow";
 import { TaskRegistry } from "./task/registry";
 import { Edge } from "@xyflow/react";
-import App from "next/app";
 
 export enum FlowToExecutionPlanValidationError {
   "NO_ENTRY_POINT",

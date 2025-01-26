@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ParamProps } from "@/types/appnodes";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 
 function StringParam({
   param,
@@ -15,10 +15,6 @@ function StringParam({
 }: ParamProps) {
   const id = useId();
   const [internalValue, setInternalValue] = useState(value);
-
-  // useEffect(() => {
-  //   setInternalValue(value);
-  // }, [internalValue, value]);
 
   let Component: any = Input;
   if (param.variant === "textarea") Component = Textarea;

@@ -36,7 +36,6 @@ export function NodeInput({
         hasErrors && "bg-destructive/30"
       )}
     >
-      {"hasErrros: " + hasErrors}
       <NodeParamField param={input} nodeId={nodeId} disabled={isConnected} />
 
       {!input.hideHandle && (
